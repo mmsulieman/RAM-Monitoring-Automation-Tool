@@ -166,7 +166,7 @@ with st.sidebar:
     st.caption("Validation gates")
     st.markdown("1. System signal  \\n2. Field validation  \\n3. Internal WFP agreement  \\n4. Action assignment  \\n5. Verification & closure")
     st.divider()
-    st.caption("Version 1.1 · Streamlit deployment package")
+    st.caption("Version 1.3 · Streamlit deployment package")
 
 branded_header(reporting_month)
 
@@ -180,6 +180,12 @@ uploads = st.file_uploader(
     help="Upload one or more MoDa exports. RBMF, FRN, logistics/handover and previous action trackers are optional and will be profiled separately.",
     label_visibility="collapsed" if nav != "1. Data Upload" else "visible",
 )
+
+# Restore persisted upload/profile state on every Streamlit rerun.
+# Page navigation and widget changes rerun the whole script; the file uploader
+# can still contain files while the upload signature is unchanged.
+profiles = st.session_state.get("profiles", [])
+paths = st.session_state.get("paths", [])
 
 if uploads:
     signature = tuple((f.name, getattr(f, "size", len(f.getbuffer()))) for f in uploads)
@@ -202,7 +208,8 @@ if uploads:
         st.session_state.analysis_params = None
         st.session_state.generated_outputs = None
         st.session_state.upload_signature = signature
-else:
+
+    # Explicitly reload persisted values even when the signature did not change.
     profiles = st.session_state.get("profiles", [])
     paths = st.session_state.get("paths", [])
 
@@ -217,7 +224,7 @@ if nav == "Home":
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Files loaded", len(profiles))
         c2.metric("MoDa exports", moda_count)
-        c3.metric("Analysis status", "Ready" if a else "Not run")
+        c3.metric("Analysis status", "Ready" if a else "Analysis pending")
         c4.metric("Reporting month", reporting_month)
         if a:
             dq = a["dq"]
